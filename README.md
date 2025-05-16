@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 💹 MACRA - Market Credibility Risk Analyzer
 
 **MACRA** (Market Credibility Risk Analyzer) is a real-time vulnerability analysis platform that quantifies the market's credit credibility by integrating population-scale credit metrics, banking risk, and macroeconomic indicators such as GDP, unemployment rates, and public sentiment. It provides a data-driven *Market Vulnerability Score* to aid analysts, regulators, and financial institutions in forecasting regional or national market stability.
