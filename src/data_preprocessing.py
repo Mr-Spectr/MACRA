@@ -2,7 +2,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from pymongo import MongoClient
-import pandas as pd
 
 def load_data_from_mongodb(uri, db_name, collection_name, query={}):
     client = MongoClient(uri)
@@ -14,9 +13,17 @@ def load_data_from_mongodb(uri, db_name, collection_name, query={}):
             row.pop('_id', None)
     df = pd.DataFrame(data)
     return df
+
+def load_json_data(filepath):
+    """Load data from a JSON file."""
+    return pd.read_json(filepath)
+
 def load_data(filepath):
-    data = pd.read_csv(filepath)
-    return data
+    """Load data from CSV or JSON based on file extension."""
+    if filepath.endswith('.json'):
+        return load_json_data(filepath)
+    else:
+        return pd.read_csv(filepath)
 
 def clean_data(data):
     # Example cleaning steps
