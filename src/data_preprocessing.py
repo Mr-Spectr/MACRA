@@ -1,7 +1,19 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from pymongo import MongoClient
+import pandas as pd
 
+def load_data_from_mongodb(uri, db_name, collection_name, query={}):
+    client = MongoClient(uri)
+    db = client[db_name]
+    collection = db[collection_name]
+    data = list(collection.find(query))
+    if data and '_id' in data[0]:
+        for row in data:
+            row.pop('_id', None)
+    df = pd.DataFrame(data)
+    return df
 def load_data(filepath):
     data = pd.read_csv(filepath)
     return data
