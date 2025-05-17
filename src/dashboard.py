@@ -43,8 +43,11 @@ if st.button('Ask LLM'):
     try:
         resp = requests.post(api_url, json={'prompt': llm_prompt}, timeout=30)
         if resp.ok:
-            st.success(resp.json().get('response', 'No response'))
+            try:
+                st.success(resp.json().get('response', 'No response'))
+            except Exception as e:
+                st.error(f"Invalid JSON response: {resp.text}")
         else:
-            st.error(resp.json().get('error', 'Unknown error'))
+            st.error(f"API error: {resp.status_code} - {resp.text}")
     except Exception as e:
         st.error(f'LLM request failed: {e}')

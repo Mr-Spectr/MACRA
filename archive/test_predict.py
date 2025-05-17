@@ -1,3 +1,5 @@
+# Legacy ML test script archived on 2025-05-17 after LLM migration.
+# Original contents preserved for reference.
 import joblib
 import pandas as pd
 

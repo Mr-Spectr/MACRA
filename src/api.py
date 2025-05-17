@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 import os
 import requests
+import traceback
 
 app = Flask(__name__)
 
@@ -24,7 +25,6 @@ def load_metrics():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    import traceback
     if model is None:
         return jsonify({'error': 'Model not loaded'}), 500
     data = request.get_json()
@@ -59,9 +59,11 @@ def metrics():
 def home():
     return 'MACRA API is running.'
 
-LLM_API_URL = os.environ.get('LLM_API_URL', 'https://openrouter.ai/deepseek/deepseek-r1:free/api')
+LLM_API_URL = os.environ.get('LLM_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
 LLM_MODEL = os.environ.get('LLM_MODEL', 'deepseek/deepseek-r1:free')
 LLM_API_KEY = os.environ.get('LLM_API_KEY', None)
+LLM_REFERER = os.environ.get('LLM_REFERER', 'http://localhost')  # Set to your dashboard URL in prod
+LLM_TITLE = os.environ.get('LLM_TITLE', 'MACRA Dashboard')
 
 @app.route('/llm', methods=['POST'])
 def llm():
@@ -73,7 +75,9 @@ def llm():
         return jsonify({'error': 'No prompt provided'}), 400
     headers = {
         'Authorization': f'Bearer {LLM_API_KEY}',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'HTTP-Referer': LLM_REFERER,
+        'X-Title': LLM_TITLE
     }
     payload = {
         'model': LLM_MODEL,
@@ -84,12 +88,15 @@ def llm():
     try:
         resp = requests.post(LLM_API_URL, headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
-        result = resp.json()
-        # Deepseek returns choices[0]['message']['content']
+        try:
+            result = resp.json()
+        except Exception:
+            return jsonify({'error': 'Invalid JSON from LLM', 'raw': resp.text}), 502
         content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
         return jsonify({'response': content})
     except Exception as e:
-        return jsonify({'error': str(e), 'traceback': getattr(e, 'response', None) and e.response.text}), 500
+        tb = traceback.format_exc()
+        return jsonify({'error': str(e), 'traceback': tb}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
