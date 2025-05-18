@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import requests
 import traceback
+import sys
 
 app = Flask(__name__)
 
@@ -65,8 +66,53 @@ LLM_API_KEY = os.environ.get('LLM_API_KEY', None)
 LLM_REFERER = os.environ.get('LLM_REFERER', 'http://localhost')  # Set to your dashboard URL in prod
 LLM_TITLE = os.environ.get('LLM_TITLE', 'MACRA Dashboard')
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("[WARNING] python-dotenv not installed. .env file will not be loaded.", file=sys.stderr)
+
+# Validate LLM API config at startup
+def validate_llm_config():
+    missing = []
+    if not LLM_API_KEY:
+        missing.append('LLM_API_KEY')
+    if not LLM_MODEL:
+        missing.append('LLM_MODEL')
+    if not LLM_API_URL:
+        missing.append('LLM_API_URL')
+    if missing:
+        print(f"[ERROR] Missing LLM config: {', '.join(missing)}", file=sys.stderr)
+        return False
+    # Try a dry-run request to check key/model/endpoint
+    headers = {
+        'Authorization': f'Bearer {LLM_API_KEY}',
+        'Content-Type': 'application/json',
+        'HTTP-Referer': LLM_REFERER,
+        'X-Title': LLM_TITLE
+    }
+    payload = {
+        'model': LLM_MODEL,
+        'messages': [
+            {'role': 'user', 'content': 'ping'}
+        ]
+    }
+    try:
+        resp = requests.post(LLM_API_URL, headers=headers, json=payload, timeout=10)
+        resp.raise_for_status()
+        _ = resp.json()
+        print("[INFO] LLM API config validated successfully.")
+        return True
+    except Exception as e:
+        print(f"[ERROR] LLM API config validation failed: {e}", file=sys.stderr)
+        return False
+
+LLM_CONFIG_OK = validate_llm_config()
+
 @app.route('/llm', methods=['POST'])
 def llm():
+    if not LLM_CONFIG_OK:
+        return jsonify({'error': 'LLM API misconfigured. Check .env and logs for details.'}), 500
     if not LLM_API_KEY:
         return jsonify({'error': 'No LLM API key set'}), 400
     data = request.get_json()
